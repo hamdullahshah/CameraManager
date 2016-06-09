@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.homepage         = "https://github.com/imaginary-cloud/CameraManager"
   s.license          = 'MIT'
   s.author           = { "torrao" => "rtorrao@imaginarycloud.com" }
-  s.source           = { :git => "https://github.com/hamdullahshah/CameraManager.git", :tag => "2.2.3" }
+  s.source           = { :git => "https://github.com/hamdullahshah/CameraManager.git", :tag => "2.2.4" }
   s.social_media_url = 'http://www.imaginarycloud.com/'
   s.platform         = :ios, '8.0'
   s.source_files     = 'camera/CameraManager.swift'
