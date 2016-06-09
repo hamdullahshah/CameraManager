@@ -10,34 +10,34 @@ import UIKit
 import CameraManager
 
 class ViewController: UIViewController {
-    
+
     // MARK: - Constants
 
     let cameraManager = CameraManager()
-    
+
     // MARK: - @IBOutlets
 
     @IBOutlet weak var cameraView: UIView!
-    
+
     @IBOutlet weak var cameraButton: UIButton!
     @IBOutlet weak var flashModeButton: UIButton!
-    
+
     @IBOutlet weak var askForPermissionsButton: UIButton!
     @IBOutlet weak var askForPermissionsLabel: UILabel!
-    
-    
+
+
     // MARK: - UIViewController
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         cameraManager.showAccessPermissionPopupAutomatically = false
-        
+
         askForPermissionsButton.hidden = true
         askForPermissionsLabel.hidden = true
 
         let currentCameraState = cameraManager.currentCameraStatus()
-        
+
         if currentCameraState == .NotDetermined {
             askForPermissionsButton.hidden = false
             askForPermissionsLabel.hidden = false
@@ -48,40 +48,57 @@ class ViewController: UIViewController {
             flashModeButton.enabled = false
             flashModeButton.setTitle("No flash", forState: UIControlState.Normal)
         }
-        
+
     }
-    
+
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        
+
         navigationController?.navigationBar.hidden = true
         cameraManager.resumeCaptureSession()
     }
-    
+
     override func viewWillDisappear(animated: Bool) {
         super.viewWillDisappear(animated)
         cameraManager.stopCaptureSession()
     }
-    
-    
+
+
+  /**
+   Crop the captured image with the visible rect in preview
+   
+   - parameter orignalImage: Orignal captured image from 'CameraManger'
+   
+   - returns: Cropped image according to the 'CameraView' rect
+   */
+    func cropImageAccordingToCameraPreview(orignalImage: UIImage) -> UIImage? {
+        let imageRef = orignalImage.CGImage
+        let width = CGFloat(CGImageGetWidth(imageRef))
+        let height = CGFloat(CGImageGetHeight(imageRef))
+        let outputRect = cameraManager.metadataOutputRectOfInterestForRect(cameraView.bounds)
+        let cropRect = CGRectMake(outputRect.origin.x * width, outputRect.origin.y * height, outputRect.size.width * width, outputRect.size.height * height)
+        guard let cropCGImage = CGImageCreateWithImageInRect(imageRef, cropRect) else {
+          return nil
+        }
+        return UIImage.init(CGImage: cropCGImage, scale: 1, orientation: orignalImage.imageOrientation)
+    }
+
     // MARK: - ViewController
-    
-    private func addCameraToView()
-    {
+
+    private func addCameraToView() {
         cameraManager.addPreviewLayerToView(cameraView, newCameraOutputMode: CameraOutputMode.VideoWithMic)
         cameraManager.showErrorBlock = { [weak self] (erTitle: String, erMessage: String) -> Void in
-        
+
             let alertController = UIAlertController(title: erTitle, message: erMessage, preferredStyle: .Alert)
             alertController.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.Default, handler: { (alertAction) -> Void in  }))
-            
+
             self?.presentViewController(alertController, animated: true, completion: nil)
         }
     }
 
     // MARK: - @IBActions
 
-    @IBAction func changeFlashMode(sender: UIButton)
-    {
+    @IBAction func changeFlashMode(sender: UIButton) {
         switch (cameraManager.changeFlashMode()) {
         case .Off:
             sender.setTitle("Flash Off", forState: UIControlState.Normal)
@@ -91,16 +108,16 @@ class ViewController: UIViewController {
             sender.setTitle("Flash Auto", forState: UIControlState.Normal)
         }
     }
-    
+
     @IBAction func recordButtonTapped(sender: UIButton) {
-        
+
         switch (cameraManager.cameraOutputMode) {
         case .StillImage:
             cameraManager.capturePictureWithCompletition({ (image, error) -> Void in
                 let vc: ImageViewController? = self.storyboard?.instantiateViewControllerWithIdentifier("ImageVC") as? ImageViewController
                 if let validVC: ImageViewController = vc {
                     if let capturedImage = image {
-                        validVC.image = capturedImage
+                        validVC.image = self.cropImageAccordingToCameraPreview(capturedImage)
                         self.navigationController?.pushViewController(validVC, animated: true)
                     }
                 }
@@ -113,16 +130,16 @@ class ViewController: UIViewController {
                 cameraManager.startRecordingVideo()
             } else {
                 cameraManager.stopRecordingVideo({ (videoURL, error) -> Void in
-                    if let errorOccured = error {                        
+                    if let errorOccured = error {
                         self.cameraManager.showErrorBlock(erTitle: "Error occurred", erMessage: errorOccured.localizedDescription)
                     }
                 })
             }
         }
     }
-    
+
     @IBAction func outputModeButtonTapped(sender: UIButton) {
-        
+
         cameraManager.cameraOutputMode = cameraManager.cameraOutputMode == CameraOutputMode.VideoWithMic ? CameraOutputMode.StillImage : CameraOutputMode.VideoWithMic
         switch (cameraManager.cameraOutputMode) {
         case .StillImage:
@@ -133,9 +150,9 @@ class ViewController: UIViewController {
             sender.setTitle("Video", forState: UIControlState.Normal)
         }
     }
-    
+
     @IBAction func changeCameraDevice(sender: UIButton) {
-        
+
         cameraManager.cameraDevice = cameraManager.cameraDevice == CameraDevice.Front ? CameraDevice.Back : CameraDevice.Front
         switch (cameraManager.cameraDevice) {
         case .Front:
@@ -144,9 +161,9 @@ class ViewController: UIViewController {
             sender.setTitle("Back", forState: UIControlState.Normal)
         }
     }
-    
+
     @IBAction func askForCameraPermissions(sender: UIButton) {
-        
+
         cameraManager.askUserForCameraPermissions({ permissionGranted in
             self.askForPermissionsButton.hidden = true
             self.askForPermissionsLabel.hidden = true
@@ -157,9 +174,9 @@ class ViewController: UIViewController {
             }
         })
     }
-    
+
     @IBAction func changeCameraQuality(sender: UIButton) {
-        
+
         switch (cameraManager.changeQualityMode()) {
         case .High:
             sender.setTitle("High", forState: UIControlState.Normal)
@@ -170,5 +187,3 @@ class ViewController: UIViewController {
         }
     }
 }
-
-
