@@ -451,6 +451,27 @@ public class CameraManager: NSObject, AVCaptureFileOutputRecordingDelegate, UIGe
         cameraOutputQuality = CameraOutputQuality(rawValue: (cameraOutputQuality.rawValue+1)%3)!
         return cameraOutputQuality
     }
+  
+  public func changeFocusToPoint(point:CGPoint) {
+    //Normalize the point
+    guard let currentDevice = AVCaptureDevice.devices().first as? AVCaptureDevice,
+      let focusPoint = previewLayer?.captureDevicePointOfInterestForPoint(point) else {
+      debugPrint("Can't focus")
+      return
+    }
+    if currentDevice.focusPointOfInterestSupported &&
+      currentDevice.isFocusModeSupported(AVCaptureFocusMode.AutoFocus) {
+      do {
+        try currentDevice.lockForConfiguration()
+        currentDevice.focusPointOfInterest = focusPoint
+        currentDevice.focusMode = AVCaptureFocusMode.ContinuousAutoFocus
+        currentDevice.exposurePointOfInterest = focusPoint
+        currentDevice.exposureMode = AVCaptureExposureMode.ContinuousAutoExposure
+      } catch let error as NSError {
+        print(error.localizedDescription)
+      }
+    }
+  }
 
     // MARK: - AVCaptureFileOutputRecordingDelegate
 
